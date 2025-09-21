@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useBudget } from "@/hooks/BudgetDataContext";
 import type { CategoryType } from "@/lib/types";
 
@@ -15,7 +15,37 @@ export default function TransactionForm() {
   const [type, setType] = useState<CategoryType>("expense");
   const [amount, setAmount] = useState<string>("");
   const [description, setDescription] = useState("");
-  const [categoryId, setCategoryId] = useState<string | "">(categories[0]?.id ?? "");
+  const [categoryId, setCategoryId] = useState<string | "">("");
+
+  // Allowed category name sets per type (case-insensitive matching)
+  const EXPENSE_ALLOWED = useMemo(
+    () => new Set(["food", "shopping", "groceries", "gifts", "personal", "other"]),
+    []
+  );
+  const INCOME_ALLOWED = useMemo(
+    () => new Set(["salary", "bonus", "gift", "other"]),
+    []
+  );
+
+  // Compute filtered categories based on selected type and allowed name sets
+  const filteredCategories = useMemo(() => {
+    const allowedSet = type === "expense" ? EXPENSE_ALLOWED : INCOME_ALLOWED;
+    return categories.filter((c) => {
+      // Only consider categories matching the selected kind, and names in the allowed list
+      const nameMatch = allowedSet.has(c.name.trim().toLowerCase());
+      return c.kind === type && nameMatch;
+    });
+  }, [categories, type, EXPENSE_ALLOWED, INCOME_ALLOWED]);
+
+  // Ensure currently selected category remains valid when type changes or categories update
+  useEffect(() => {
+    if (!categoryId || !filteredCategories.length) {
+      setCategoryId("");
+      return;
+    }
+    const stillValid = filteredCategories.some((c) => c.id === categoryId);
+    if (!stillValid) setCategoryId("");
+  }, [type, filteredCategories, categoryId]);
 
   const isValid = useMemo(() => {
     const value = parseFloat(amount);
@@ -39,17 +69,19 @@ export default function TransactionForm() {
     // Reset form
     setAmount("");
     setDescription("");
+    // Keep type as is; clear category to prompt re-selection for clarity
+    setCategoryId("");
   };
 
   return (
-    <section className="rounded-2xl border border-slate-700/60 bg-slate-900/70 p-4 sm:p-5 ring-1 ring-emerald-500/20">
-      <form onSubmit={handleSubmit} className="space-y-3">
+    <section className="rounded-2xl border border-slate-700/60 bg-slate-900/70 p-4 sm:p-6 ring-1 ring-emerald-500/20">
+      <form onSubmit={handleSubmit} className="space-y-4">
         <h2 className="text-lg font-extrabold tracking-wide text-emerald-300">
           Add Transaction
         </h2>
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div className="flex items-center gap-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="flex items-center gap-3">
             <label className="text-xs font-semibold uppercase text-slate-400">
               Type
             </label>
@@ -117,12 +149,17 @@ export default function TransactionForm() {
               className="w-full rounded-xl border border-slate-700/60 bg-slate-800/70 px-3 py-2 text-slate-100 outline-none ring-1 ring-transparent transition focus:ring-emerald-500/40"
             >
               <option value="">Uncategorized</option>
-              {categories.map((c) => (
+              {filteredCategories.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
                 </option>
               ))}
             </select>
+            <p className="mt-1 text-[10px] uppercase tracking-wide text-slate-500">
+              {type === "expense"
+                ? "Allowed: Food, Shopping, Groceries, Gifts, Personal, Other"
+                : "Allowed: Salary, Bonus, Gift, Other"}
+            </p>
           </div>
         </div>
 
