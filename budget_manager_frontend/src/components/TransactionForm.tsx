@@ -15,7 +15,7 @@ export default function TransactionForm() {
   const [type, setType] = useState<CategoryType>("expense");
   const [amount, setAmount] = useState<string>("");
   const [description, setDescription] = useState("");
-  const [categoryId, setCategoryId] = useState<string | "">("");
+  const [categoryId, setCategoryId] = useState<string>("");
 
   // Allowed category name sets per type (case-insensitive matching)
   const EXPENSE_ALLOWED = useMemo(
@@ -39,18 +39,28 @@ export default function TransactionForm() {
 
   // Ensure currently selected category remains valid when type changes or categories update
   useEffect(() => {
-    if (!categoryId || !filteredCategories.length) {
+    // When type changes or categories update, ensure a valid selection exists
+    if (filteredCategories.length === 0) {
+      // No valid categories for this type; keep empty but UI will reflect no options
       setCategoryId("");
       return;
     }
-    const stillValid = filteredCategories.some((c) => c.id === categoryId);
-    if (!stillValid) setCategoryId("");
-  }, [type, filteredCategories, categoryId]);
+    // If no selection or selection is no longer valid, default to the first filtered option
+    const stillValid = categoryId && filteredCategories.some((c) => c.id === categoryId);
+    if (!stillValid) {
+      setCategoryId(filteredCategories[0].id);
+    }
+  }, [type, filteredCategories]);
 
   const isValid = useMemo(() => {
     const value = parseFloat(amount);
-    return !isNaN(value) && value > 0 && description.trim().length > 0;
-  }, [amount, description]);
+    return (
+      !isNaN(value) &&
+      value > 0 &&
+      description.trim().length > 0 &&
+      !!categoryId
+    );
+  }, [amount, description, categoryId]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,13 +73,13 @@ export default function TransactionForm() {
       type,
       description: description.trim(),
       date: new Date().toISOString(),
-      categoryId: categoryId || undefined,
+      categoryId: categoryId,
     });
 
     // Reset form
     setAmount("");
     setDescription("");
-    // Keep type as is; clear category to prompt re-selection for clarity
+    // Keep type as is; category will auto-select first valid option via effect
     setCategoryId("");
   };
 
@@ -140,7 +150,7 @@ export default function TransactionForm() {
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-semibold uppercase text-slate-400">
+            <label className="mb-1.5 block text-xs font-semibold uppercase text-slate-400">
               Category
             </label>
             <select
@@ -148,17 +158,22 @@ export default function TransactionForm() {
               onChange={(e) => setCategoryId(e.target.value)}
               className="w-full rounded-xl border border-slate-700/60 bg-slate-800/70 px-3 py-2 text-slate-100 outline-none ring-1 ring-transparent transition focus:ring-emerald-500/40"
             >
-              <option value="">Uncategorized</option>
-              {filteredCategories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
+              {filteredCategories.length === 0 ? (
+                <option value="" disabled>
+                  No categories available
                 </option>
-              ))}
+              ) : (
+                filteredCategories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))
+              )}
             </select>
             <p className="mt-1 text-[10px] uppercase tracking-wide text-slate-500">
               {type === "expense"
-                ? "Allowed: Food, Shopping, Groceries, Gifts, Personal, Other"
-                : "Allowed: Salary, Bonus, Gift, Other"}
+                ? "Categories: Food, Shopping, Groceries, Gifts, Personal, Other"
+                : "Categories: Salary, Bonus, Gift, Other"}
             </p>
           </div>
         </div>
