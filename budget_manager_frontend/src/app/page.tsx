@@ -5,6 +5,7 @@ import SummaryCards from "@/components/SummaryCards";
 import TransactionForm from "@/components/TransactionForm";
 import TransactionList from "@/components/TransactionList";
 import SpendingChart from "@/components/SpendingChart";
+import Insights from "@/components/Insights";
 import { BudgetDataProvider } from "@/hooks/BudgetDataContext";
 
 export default function Home() {
@@ -34,7 +35,10 @@ export default function Home() {
             <h2 id="insights" className="text-base sm:text-lg font-semibold text-slate-200">
               Insights
             </h2>
-            <SpendingChart />
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+              <Insights />
+              <SpendingChart />
+            </div>
           </section>
 
           <section aria-labelledby="manage" className="grid grid-cols-1 gap-6 md:grid-cols-2">
