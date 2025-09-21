@@ -27,7 +27,7 @@ export default function TransactionList() {
     n.toLocaleString(undefined, { style: "currency", currency: "USD" });
 
   return (
-    <section className="rounded-2xl border border-slate-700/60 bg-slate-900/70 p-4 ring-1 ring-emerald-500/20">
+    <section className="rounded-2xl border border-slate-700/60 bg-slate-900/70 p-4 sm:p-5 ring-1 ring-emerald-500/20">
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-lg font-extrabold tracking-wide text-slate-200">
           Transactions

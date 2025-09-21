@@ -25,7 +25,7 @@ export default function CategoryBadge({ name }: { name: string }) {
 
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full border border-slate-700/70 bg-gradient-to-br px-3 py-1 text-xs font-bold ring-1 ${cls}`}
+      className={`inline-flex items-center gap-1.5 rounded-full border border-slate-700/70 bg-gradient-to-br px-3 py-1.5 text-[11px] font-bold ring-1 ${cls}`}
     >
       {name}
     </span>

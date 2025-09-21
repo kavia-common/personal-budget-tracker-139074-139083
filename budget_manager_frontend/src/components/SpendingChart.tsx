@@ -6,24 +6,16 @@ import { useBudgetData } from "@/hooks/useBudgetData";
 /**
  * PUBLIC_INTERFACE
  * SpendingChart component renders a responsive neon-styled bar chart that visualizes
- * total expenses by category using flex/CSS (no chart libs). It integrates with the
- * useBudgetData hook to read transactions and computes totals per category on the client.
- *
- * Accessibility:
- * - Uses semantic region/heading and role="img" with aria-label for the chart.
- * - Each bar includes aria-label that announces category and amount.
- * - Includes empty states for when there are no expenses.
+ * total expenses by category using flex/CSS (no chart libs).
  */
 export function SpendingChart(): React.ReactElement {
   const { transactions } = useBudgetData();
 
-  // Compute totals by category, only for expense transactions
   const totalsByCategory = useMemo(() => {
     const totals = new Map<string, number>();
     if (!transactions || transactions.length === 0) return totals;
 
     for (const t of transactions as Array<{ amount: number; category?: string; type?: string }>) {
-      // consider negative amounts or explicit type 'expense' as expenses
       const isExpense =
         (typeof t.type === "string" && t.type === "expense") ||
         (typeof t.amount === "number" && t.amount < 0);
@@ -31,7 +23,6 @@ export function SpendingChart(): React.ReactElement {
       if (!isExpense) continue;
 
       const category = (t.category || "Uncategorized").trim() || "Uncategorized";
-      // Normalize to positive value for display
       const amount = Math.abs(Number(t.amount) || 0);
       totals.set(category, (totals.get(category) || 0) + amount);
     }
@@ -42,7 +33,6 @@ export function SpendingChart(): React.ReactElement {
     const entries = Array.from(totalsByCategory.entries()).map(
       ([category, total]) => ({ category, total })
     );
-    // Sort largest to smallest for better visual emphasis
     entries.sort((a, b) => b.total - a.total);
     return entries;
   }, [totalsByCategory]);
@@ -64,7 +54,6 @@ export function SpendingChart(): React.ReactElement {
         >
           Spending by Category
         </h2>
-        {/* Legend */}
         <div className="hidden sm:flex items-center gap-3 text-xs text-slate-300">
           <span className="inline-flex items-center gap-1">
             <span
@@ -76,7 +65,6 @@ export function SpendingChart(): React.ReactElement {
         </div>
       </div>
 
-      {/* Empty states */}
       {(!transactions || transactions.length === 0) && (
         <div
           role="status"
@@ -101,7 +89,6 @@ export function SpendingChart(): React.ReactElement {
         </div>
       )}
 
-      {/* Chart */}
       {data.length > 0 && (
         <div
           role="img"
@@ -130,7 +117,6 @@ export function SpendingChart(): React.ReactElement {
                         "0 0 12px rgba(52, 211, 153, 0.9), inset 0 0 6px rgba(16, 185, 129, 0.6)",
                     }}
                   >
-                    {/* Neon shimmer overlay */}
                     <span
                       aria-hidden="true"
                       className="pointer-events-none absolute inset-0"
@@ -145,7 +131,6 @@ export function SpendingChart(): React.ReactElement {
               </div>
             );
           })}
-          {/* Responsive note: bars scale by width; layout stacks on small screens */}
           <div className="mt-2 text-xs text-slate-400">
             Tip: Hover over bars for details. Values are totals per category.
           </div>

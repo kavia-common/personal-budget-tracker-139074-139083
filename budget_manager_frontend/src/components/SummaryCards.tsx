@@ -5,7 +5,7 @@ import { useBudgetData } from "@/hooks/useBudgetData";
 
 /**
  * PUBLIC_INTERFACE
- * SummaryCards displays a row of KPI cards for total income, expenses, and balance.
+ * SummaryCards displays a row of KPI cards for total income, expenses, and balance with consistent spacing.
  */
 export default function SummaryCards() {
   const { totalIncome, totalExpenses, balance } = useBudgetData();
@@ -31,8 +31,8 @@ export default function SummaryCards() {
       label: "Balance",
       value: balance,
       color: "from-cyan-500/30 to-indigo-900/20",
-      accent: "text-cyan-300",
-      ring: "ring-cyan-500/40",
+      accent: balance >= 0 ? "text-emerald-300" : "text-rose-300",
+      ring: balance >= 0 ? "ring-emerald-500/40" : "ring-rose-500/40",
       prefix: balance >= 0 ? "" : "-",
     },
   ];
@@ -45,7 +45,7 @@ export default function SummaryCards() {
       {cards.map((c) => (
         <div
           key={c.label}
-          className={`relative overflow-hidden rounded-2xl border border-slate-700/60 bg-gradient-to-br ${c.color} p-4 ring-1 ${c.ring}`}
+          className={`relative overflow-hidden rounded-2xl border border-slate-700/60 bg-gradient-to-br ${c.color} p-4 sm:p-5 ring-1 ${c.ring}`}
         >
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold tracking-wide text-slate-300">
@@ -53,7 +53,7 @@ export default function SummaryCards() {
             </h3>
           </div>
           <p
-            className={`mt-3 text-2xl font-extrabold tracking-tight ${c.accent}`}
+            className={`mt-3 text-2xl sm:text-3xl font-extrabold tracking-tight ${c.accent}`}
           >
             {c.prefix}
             {formatCurrency(Math.abs(c.value))}
