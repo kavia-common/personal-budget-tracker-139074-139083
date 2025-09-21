@@ -1,16 +1,16 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import { useBudgetData } from "@/hooks/useBudgetData";
+import { useBudget } from "@/hooks/BudgetDataContext";
 import type { CategoryType } from "@/lib/types";
 
 /**
  * PUBLIC_INTERFACE
  * TransactionForm allows users to add income or expense entries.
- * Integrates with useBudgetData to persist in localStorage.
+ * Integrates with shared budget context to persist and update summaries immediately.
  */
 export default function TransactionForm() {
-  const { addTransaction, categories } = useBudgetData();
+  const { addTransaction, categories } = useBudget();
 
   const [type, setType] = useState<CategoryType>("expense");
   const [amount, setAmount] = useState<string>("");

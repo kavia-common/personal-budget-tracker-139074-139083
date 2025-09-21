@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import { useBudgetData } from "@/hooks/useBudgetData";
+import { useBudget } from "@/hooks/BudgetDataContext";
 import CategoryBadge from "@/components/CategoryBadge";
 
 /**
@@ -9,7 +9,7 @@ import CategoryBadge from "@/components/CategoryBadge";
  * TransactionList renders the history of transactions with filtering and deletion.
  */
 export default function TransactionList() {
-  const { transactions, deleteTransaction, categories } = useBudgetData();
+  const { transactions, deleteTransaction, categories } = useBudget();
   const [filter, setFilter] = useState<"all" | "income" | "expense">("all");
 
   const categoryNameById = useMemo(() => {

@@ -1,14 +1,14 @@
 "use client";
 
 import React from "react";
-import { useBudgetData } from "@/hooks/useBudgetData";
+import { useBudget } from "@/hooks/BudgetDataContext";
 
 /**
  * PUBLIC_INTERFACE
  * SummaryCards displays a row of KPI cards for total income, expenses, and balance with consistent spacing.
  */
 export default function SummaryCards() {
-  const { totalIncome, totalExpenses, balance } = useBudgetData();
+  const { totalIncome, totalExpenses, balance } = useBudget();
 
   const cards = [
     {
