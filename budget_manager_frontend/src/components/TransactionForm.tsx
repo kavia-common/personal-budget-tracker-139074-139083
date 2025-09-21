@@ -17,40 +17,39 @@ export default function TransactionForm() {
   const [description, setDescription] = useState("");
   const [categoryId, setCategoryId] = useState<string>("");
 
-  // Allowed category name sets per type (case-insensitive matching)
-  const EXPENSE_ALLOWED = useMemo(
-    () => new Set(["food", "shopping", "groceries", "gifts", "personal", "other"]),
+  // Strict allowed category names per transaction type
+  const EXPENSE_CATEGORIES = useMemo(
+    () => ["food", "shopping", "groceries", "gifts", "personal", "other"],
     []
   );
-  const INCOME_ALLOWED = useMemo(
-    () => new Set(["salary", "bonus", "gift", "other"]),
+  const INCOME_CATEGORIES = useMemo(
+    () => ["salary", "bonus", "gift", "other"],
     []
   );
 
-  // Compute filtered categories based on selected type and allowed name sets
+  // Get filtered categories based on transaction type and allowed categories
   const filteredCategories = useMemo(() => {
-    const allowedSet = type === "expense" ? EXPENSE_ALLOWED : INCOME_ALLOWED;
-    return categories.filter((c) => {
-      // Only consider categories matching the selected kind, and names in the allowed list
-      const nameMatch = allowedSet.has(c.name.trim().toLowerCase());
-      return c.kind === type && nameMatch;
-    });
-  }, [categories, type, EXPENSE_ALLOWED, INCOME_ALLOWED]);
+    const allowedNames = type === "expense" ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
+    return categories
+      .filter(c => 
+        c.kind === type && 
+        allowedNames.includes(c.name.trim().toLowerCase())
+      )
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [categories, type, EXPENSE_CATEGORIES, INCOME_CATEGORIES]);
 
-  // Ensure currently selected category remains valid when type changes or categories update
+  // Ensure valid category selection when type changes or categories update
   useEffect(() => {
-    // When type changes or categories update, ensure a valid selection exists
-    if (filteredCategories.length === 0) {
-      // No valid categories for this type; keep empty but UI will reflect no options
-      setCategoryId("");
-      return;
+    if (filteredCategories.length > 0) {
+      // If current selection is invalid or empty, select first available category
+      const isCurrentValid = categoryId && 
+        filteredCategories.some(c => c.id === categoryId);
+      
+      if (!isCurrentValid) {
+        setCategoryId(filteredCategories[0].id);
+      }
     }
-    // If no selection or selection is no longer valid, default to the first filtered option
-    const stillValid = categoryId && filteredCategories.some((c) => c.id === categoryId);
-    if (!stillValid) {
-      setCategoryId(filteredCategories[0].id);
-    }
-  }, [type, filteredCategories]);
+  }, [type, filteredCategories, categoryId]);
 
   const isValid = useMemo(() => {
     const value = parseFloat(amount);
@@ -58,9 +57,9 @@ export default function TransactionForm() {
       !isNaN(value) &&
       value > 0 &&
       description.trim().length > 0 &&
-      !!categoryId
+      filteredCategories.some(c => c.id === categoryId)
     );
-  }, [amount, description, categoryId]);
+  }, [amount, description, categoryId, filteredCategories]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,19 +67,22 @@ export default function TransactionForm() {
     const value = parseFloat(amount);
     if (isNaN(value) || value <= 0) return;
 
+    // Verify category is valid before submission
+    if (!filteredCategories.some(c => c.id === categoryId)) return;
+
     addTransaction({
       amount: value,
       type,
       description: description.trim(),
       date: new Date().toISOString(),
-      categoryId: categoryId,
+      categoryId,
     });
 
     // Reset form
     setAmount("");
     setDescription("");
-    // Keep type as is; category will auto-select first valid option via effect
-    setCategoryId("");
+    // Keep type and auto-select first category for that type
+    setCategoryId(filteredCategories[0]?.id || "");
   };
 
   return (
@@ -151,11 +153,12 @@ export default function TransactionForm() {
 
           <div>
             <label className="mb-1.5 block text-xs font-semibold uppercase text-slate-400">
-              Category
+              Category <span className="text-rose-400">*</span>
             </label>
             <select
               value={categoryId}
               onChange={(e) => setCategoryId(e.target.value)}
+              required
               className="w-full rounded-xl border border-slate-700/60 bg-slate-800/70 px-3 py-2 text-slate-100 outline-none ring-1 ring-transparent transition focus:ring-emerald-500/40"
             >
               {filteredCategories.length === 0 ? (
@@ -163,17 +166,24 @@ export default function TransactionForm() {
                   No categories available
                 </option>
               ) : (
-                filteredCategories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))
+                <>
+                  {!categoryId && (
+                    <option value="" disabled>
+                      Select a category
+                    </option>
+                  )}
+                  {filteredCategories.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </>
               )}
             </select>
             <p className="mt-1 text-[10px] uppercase tracking-wide text-slate-500">
-              {type === "expense"
-                ? "Categories: Food, Shopping, Groceries, Gifts, Personal, Other"
-                : "Categories: Salary, Bonus, Gift, Other"}
+              Available categories: {type === "expense" 
+                ? EXPENSE_CATEGORIES.join(", ") 
+                : INCOME_CATEGORIES.join(", ")}
             </p>
           </div>
         </div>
