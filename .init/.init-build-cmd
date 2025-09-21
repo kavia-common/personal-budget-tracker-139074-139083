@@ -1,0 +1,4 @@
+{
+    "command": "npm install && npm run lint && npm run build",
+    "working_directory": "/home/kavia/workspace/code-generation/personal-budget-tracker-139074-139083/budget_manager_frontend"
+}
