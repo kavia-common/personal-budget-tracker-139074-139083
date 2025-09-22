@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useBudget } from "@/hooks/BudgetDataContext";
 import type { CategoryType } from "@/lib/types";
 
@@ -17,9 +17,9 @@ export default function TransactionForm() {
   const [description, setDescription] = useState("");
   const [categoryId, setCategoryId] = useState<string>("");
 
-  // Strict allowed category names per transaction type
+  // Allowed category names per transaction type (canonical labels)
   const EXPENSE_CATEGORIES = useMemo(
-    () => ["food", "shopping", "groceries", "gifts", "personal", "other"],
+    () => ["food", "shopping", "grocer", "gifts", "personal", "other"],
     []
   );
   const INCOME_CATEGORIES = useMemo(
@@ -27,29 +27,60 @@ export default function TransactionForm() {
     []
   );
 
-  // Get filtered categories based on transaction type and allowed categories
+  // Utility: normalize text for robust matching
+  const norm = (s: string) => s.trim().toLowerCase();
+
+  // Predicate: check if a category record is of requested kind and name is allowed.
+  // - Case-insensitive kind check
+  // - Name supports partial/variant matches (e.g., "groceries" matches "grocer")
+  const isCategoryAllowedForType = useCallback(
+    (catKind: string, catName: string, txType: CategoryType) => {
+      const kindMatch = norm(catKind) === norm(txType);
+      const allowedBases = txType === "expense" ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
+
+      const n = norm(catName);
+      // Allow if name equals or contains one of the allowed base tokens or vice versa
+      const nameMatch = allowedBases.some((base) => {
+        const b = norm(base);
+        return n === b || n.includes(b) || b.includes(n);
+      });
+
+      return kindMatch && nameMatch;
+    },
+    [EXPENSE_CATEGORIES, INCOME_CATEGORIES]
+  );
+
+  // Build filtered list with improved matching and ensure we never exclude valid categories
   const filteredCategories = useMemo(() => {
-    const allowedNames = type === "expense" ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
-    return categories
-      .filter(c => 
-        c.kind === type && 
-        allowedNames.includes(c.name.trim().toLowerCase())
-      )
+    const list = categories
+      .filter((c) => isCategoryAllowedForType(String(c.kind ?? ""), String(c.name ?? ""), type))
       .sort((a, b) => a.name.localeCompare(b.name));
-  }, [categories, type, EXPENSE_CATEGORIES, INCOME_CATEGORIES]);
+
+    // If nothing matched due to unexpected naming, relax to all categories of the same kind (case-insensitive)
+    if (list.length === 0) {
+      const relaxed = categories
+        .filter((c) => norm(String(c.kind ?? "")) === norm(type))
+        .sort((a, b) => a.name.localeCompare(b.name));
+      return relaxed;
+    }
+    return list;
+  }, [categories, type, isCategoryAllowedForType]);
 
   // Ensure valid category selection when type changes or categories update
   useEffect(() => {
     if (filteredCategories.length > 0) {
       // If current selection is invalid or empty, select first available category
-      const isCurrentValid = categoryId && 
-        filteredCategories.some(c => c.id === categoryId);
-      
+      const isCurrentValid = categoryId && filteredCategories.some((c) => c.id === categoryId);
       if (!isCurrentValid) {
         setCategoryId(filteredCategories[0].id);
       }
+    } else {
+      // No categories to choose from; clear selection
+      if (categoryId) setCategoryId("");
     }
-  }, [type, filteredCategories, categoryId]);
+    // Only react to changes in type and filtered categories; categoryId is used for validation
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [type, filteredCategories]);
 
   const isValid = useMemo(() => {
     const value = parseFloat(amount);
@@ -57,7 +88,7 @@ export default function TransactionForm() {
       !isNaN(value) &&
       value > 0 &&
       description.trim().length > 0 &&
-      filteredCategories.some(c => c.id === categoryId)
+      filteredCategories.some((c) => c.id === categoryId)
     );
   }, [amount, description, categoryId, filteredCategories]);
 
@@ -68,7 +99,7 @@ export default function TransactionForm() {
     if (isNaN(value) || value <= 0) return;
 
     // Verify category is valid before submission
-    if (!filteredCategories.some(c => c.id === categoryId)) return;
+    if (!filteredCategories.some((c) => c.id === categoryId)) return;
 
     addTransaction({
       amount: value,
@@ -78,10 +109,9 @@ export default function TransactionForm() {
       categoryId,
     });
 
-    // Reset form
+    // Reset form state while retaining type selection; auto-select first available category
     setAmount("");
     setDescription("");
-    // Keep type and auto-select first category for that type
     setCategoryId(filteredCategories[0]?.id || "");
   };
 
@@ -167,11 +197,7 @@ export default function TransactionForm() {
                 </option>
               ) : (
                 <>
-                  {!categoryId && (
-                    <option value="" disabled>
-                      Select a category
-                    </option>
-                  )}
+                  {/* Always ensure at least one option is present; if none selected, show the first as selected by effect */}
                   {filteredCategories.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.name}
@@ -181,9 +207,10 @@ export default function TransactionForm() {
               )}
             </select>
             <p className="mt-1 text-[10px] uppercase tracking-wide text-slate-500">
-              Available categories: {type === "expense" 
-                ? EXPENSE_CATEGORIES.join(", ") 
-                : INCOME_CATEGORIES.join(", ")}
+              Available categories:{" "}
+              {type === "expense"
+                ? ["Food", "Shopping", "Groceries", "Gifts", "Personal", "Other"].join(", ")
+                : ["Salary", "Bonus", "Gift", "Other"].join(", ")}
             </p>
           </div>
         </div>
